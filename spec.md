@@ -44,25 +44,25 @@ A Tetris-style browser game where lettered blocks fall and are cleared by formin
   - 5 letters: 400 points
   - 6 letters: 800 points
   - 7+ letters: 1600 points
-- Chain/cascade bonus: multiply by chain count (x2 for 2nd word in a cascade, x3 for 3rd, etc.)
+- No chain/cascade bonus — each word scores independently regardless of cascades
 
 ## Game Over
 - Same as Tetris: game ends when a new piece cannot spawn because the top of the board is blocked
 
 ## Speed / Difficulty
 - Pieces fall faster over time (level-based, like Tetris)
-- Level increases every N words cleared (not lines)
+- Level increases every 5 words cleared
 
 ## Controls
 | Action      | Key              |
 |-------------|------------------|
-| Move left   | Left arrow / A   |
-| Move right  | Right arrow / D  |
-| Rotate CW   | Up arrow / W     |
-| Rotate CCW  | Z                |
-| Soft drop   | Down arrow / S   |
-| Hard drop   | Space            |
-| Pause       | Escape / P       |
+| Move left   | Left arrow / A / Numpad 4   |
+| Move right  | Right arrow / D / Numpad 6  |
+| Rotate CW   | Up arrow / W / Numpad 5     |
+| Rotate CCW  | Z / Numpad 8                |
+| Soft drop   | Down arrow / S / Numpad 2   |
+| Hard drop   | Space / Numpad 0            |
+| Pause       | Escape / P                  |
 
 ## UI Elements
 - Game board (center)

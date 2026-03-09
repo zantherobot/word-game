@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Tetris</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a1a2e;
+  color: #eee;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#game-container {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+#board-wrapper {
+  position: relative;
+}
+
+canvas#board {
+  border: 2px solid #444;
+  background: #0f0f23;
+}
+
+#sidebar {
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.panel h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.panel .value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #e2b714;
+}
+
+#next-preview {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+#overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+#overlay.hidden { display: none; }
+
+#overlay-content {
+  background: #16213e;
+  border: 2px solid #e2b714;
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  max-width: 400px;
+}
+
+#overlay-content h1 {
+  color: #e2b714;
+  margin-bottom: 12px;
+}
+
+#overlay-content p {
+  margin-bottom: 8px;
+  color: #aaa;
+  font-size: 14px;
+}
+
+#overlay-content button {
+  margin-top: 20px;
+  padding: 10px 32px;
+  font-size: 16px;
+  background: #e2b714;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#overlay-content button:hover { background: #f5cc3c; }
+
+#words-found {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+#words-found .word-entry {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  border-bottom: 1px solid #222;
+}
+
+#words-found .word-entry .word { color: #6ecf6e; text-transform: uppercase; }
+#words-found .word-entry .pts { color: #e2b714; }
+
+#controls-hint {
+  font-size: 11px;
+  color: #555;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <div id="board-wrapper">
+    <canvas id="board" width="300" height="600"></canvas>
+  </div>
+  <div id="sidebar">
+    <div class="panel">
+      <h3>Next</h3>
+      <canvas id="next-preview" width="120" height="120"></canvas>
+    </div>
+    <div class="panel">
+      <h3>Score</h3>
+      <div class="value" id="score-display">0</div>
+    </div>
+    <div class="panel">
+      <h3>Level</h3>
+      <div class="value" id="level-display">1</div>
+    </div>
+    <div class="panel">
+      <h3>Words</h3>
+      <div class="value" id="words-display">0</div>
+    </div>
+    <div class="panel">
+      <h3>Words Found</h3>
+      <div id="words-found"></div>
+    </div>
+    <div id="controls-hint">
+      Arrows/WASD/Numpad to move<br>
+      Space/Num0: hard drop<br>
+      Z/Num8: rotate CCW<br>
+      Up/W/Num5: rotate CW<br>
+      Esc/P: pause
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="overlay-content">
+    <h1>Word Tetris</h1>
+    <p>Form words from falling letter blocks!</p>
+    <p>Words are detected horizontally (left→right) and vertically (top→bottom).</p>
+    <button id="start-btn">Start Game</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
