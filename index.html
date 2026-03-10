@@ -134,6 +134,107 @@ canvas#board {
   color: #555;
   line-height: 1.6;
 }
+
+/* Mobile touch buttons */
+#touch-controls {
+  display: none;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  gap: 8px;
+}
+
+#touch-controls .touch-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+#touch-controls button {
+  width: 64px;
+  height: 54px;
+  font-size: 22px;
+  background: #16213e;
+  color: #eee;
+  border: 2px solid #444;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+#touch-controls button:active {
+  background: #2a3a5e;
+  border-color: #e2b714;
+}
+
+#touch-controls button.wide {
+  width: 140px;
+}
+
+/* Mobile layout */
+@media (max-width: 600px), (pointer: coarse) {
+  body {
+    align-items: flex-start;
+    padding: 8px;
+  }
+
+  #game-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  canvas#board {
+    width: min(100vw - 16px, 300px);
+    height: auto;
+    aspect-ratio: 1 / 2;
+  }
+
+  #sidebar {
+    width: 100%;
+    max-width: 320px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  #sidebar .panel {
+    padding: 8px;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  #sidebar .panel:has(#next-preview) {
+    order: -1;
+  }
+
+  #next-preview {
+    width: 80px;
+    height: 80px;
+  }
+
+  #sidebar .panel:has(#words-found) {
+    width: 100%;
+    max-height: 100px;
+  }
+
+  #words-found {
+    max-height: 60px;
+  }
+
+  #controls-hint {
+    display: none;
+  }
+
+  #touch-controls {
+    display: flex;
+    flex-direction: column;
+  }
+}
 </style>
 </head>
 <body>
@@ -169,6 +270,22 @@ canvas#board {
       Z/Num8: rotate CCW<br>
       Up/W/Num5: rotate CW<br>
       Esc/P: pause
+    </div>
+  </div>
+  <div id="touch-controls">
+    <div class="touch-row">
+      <button id="btn-ccw">&#x21BA;</button>
+      <button id="btn-up">&#x25B2;</button>
+      <button id="btn-cw">&#x21BB;</button>
+    </div>
+    <div class="touch-row">
+      <button id="btn-left">&#x25C0;</button>
+      <button id="btn-down">&#x25BC;</button>
+      <button id="btn-right">&#x25B6;</button>
+    </div>
+    <div class="touch-row">
+      <button id="btn-drop" class="wide">Drop</button>
+      <button id="btn-pause" class="wide">Pause</button>
     </div>
   </div>
 </div>

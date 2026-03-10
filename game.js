@@ -830,7 +830,106 @@ function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
 }
 
+// --- Touch Controls ---
+function setupTouchControls() {
+  // On-screen button controls
+  const btnLeft = document.getElementById('btn-left');
+  const btnRight = document.getElementById('btn-right');
+  const btnDown = document.getElementById('btn-down');
+  const btnUp = document.getElementById('btn-up');
+  const btnCW = document.getElementById('btn-cw');
+  const btnCCW = document.getElementById('btn-ccw');
+  const btnDrop = document.getElementById('btn-drop');
+  const btnPause = document.getElementById('btn-pause');
+
+  function onTouch(btn, action) {
+    if (!btn) return;
+    btn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      action();
+    });
+    btn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      action();
+    });
+  }
+
+  onTouch(btnLeft, () => {
+    if (!gameOver && !paused && currentPiece && isValidPosition(currentPiece, -1, 0)) currentPiece.x--;
+  });
+  onTouch(btnRight, () => {
+    if (!gameOver && !paused && currentPiece && isValidPosition(currentPiece, 1, 0)) currentPiece.x++;
+  });
+  onTouch(btnDown, () => {
+    if (!gameOver && !paused && currentPiece && isValidPosition(currentPiece, 0, 1)) {
+      currentPiece.y++;
+      dropTimer = 0;
+    }
+  });
+  onTouch(btnUp, () => {
+    if (!gameOver && !paused && currentPiece) rotatePiece(currentPiece, 1);
+  });
+  onTouch(btnCW, () => {
+    if (!gameOver && !paused && currentPiece) rotatePiece(currentPiece, 1);
+  });
+  onTouch(btnCCW, () => {
+    if (!gameOver && !paused && currentPiece) rotatePiece(currentPiece, -1);
+  });
+  onTouch(btnDrop, () => {
+    if (!gameOver && !paused && currentPiece) hardDrop();
+  });
+  onTouch(btnPause, () => {
+    if (!gameOver) togglePause();
+  });
+
+  // Swipe controls on the canvas
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStartTime = Date.now();
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (gameOver || paused || !currentPiece) return;
+
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    const dt = Date.now() - touchStartTime;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    const minSwipe = 30;
+
+    if (absDx < minSwipe && absDy < minSwipe && dt < 300) {
+      // Tap = rotate
+      rotatePiece(currentPiece, 1);
+    } else if (absDy > absDx && dy > minSwipe) {
+      // Swipe down
+      if (dy > 100 || dt < 200) {
+        hardDrop();
+      } else {
+        if (isValidPosition(currentPiece, 0, 1)) {
+          currentPiece.y++;
+          dropTimer = 0;
+        }
+      }
+    } else if (absDx > absDy) {
+      if (dx < -minSwipe && isValidPosition(currentPiece, -1, 0)) currentPiece.x--;
+      if (dx > minSwipe && isValidPosition(currentPiece, 1, 0)) currentPiece.x++;
+    }
+  }, { passive: false });
+}
+
 // --- Init ---
+setupTouchControls();
+
 startBtn.addEventListener('click', async () => {
   startBtn.textContent = 'Loading...';
   startBtn.disabled = true;
