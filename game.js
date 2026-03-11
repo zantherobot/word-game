@@ -1,4 +1,4 @@
-// ========== Word Tetris ==========
+// ========== Alphabricks ==========
 
 // --- Constants ---
 const COLS = 10;
