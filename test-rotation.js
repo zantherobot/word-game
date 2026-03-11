@@ -8,10 +8,10 @@ const ROWS = 20;
 const SHAPES = {
   I: [[[0,0],[1,0],[2,0],[3,0]], [[0,0],[0,1],[0,2],[0,3]], [[0,0],[1,0],[2,0],[3,0]], [[0,0],[0,1],[0,2],[0,3]]],
   O: [[[0,0],[1,0],[0,1],[1,1]], [[0,0],[1,0],[0,1],[1,1]], [[0,0],[1,0],[0,1],[1,1]], [[0,0],[1,0],[0,1],[1,1]]],
-  T: [[[0,0],[1,0],[2,0],[1,1]], [[0,0],[0,1],[0,2],[1,1]], [[1,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[1,2],[0,1]]],
+  T: [[[1,0],[0,1],[1,1],[2,1]], [[0,0],[0,1],[0,2],[1,1]], [[0,0],[1,0],[2,0],[1,1]], [[1,0],[1,1],[1,2],[0,1]]],
   S: [[[1,0],[2,0],[0,1],[1,1]], [[0,0],[0,1],[1,1],[1,2]]],
   Z: [[[0,0],[1,0],[1,1],[2,1]], [[1,0],[1,1],[0,1],[0,2]]],
-  L: [[[0,0],[1,0],[2,0],[0,1]], [[0,0],[1,0],[1,1],[1,2]], [[2,0],[0,1],[1,1],[2,1]], [[0,0],[0,1],[0,2],[1,2]]],
+  L: [[[2,0],[0,1],[1,1],[2,1]], [[0,0],[0,1],[0,2],[1,2]], [[0,0],[1,0],[2,0],[0,1]], [[0,0],[1,0],[1,1],[1,2]]],
   J: [[[0,0],[1,0],[2,0],[2,1]], [[0,0],[1,0],[0,1],[0,2]], [[0,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[1,2],[0,2]]]
 };
 
@@ -477,6 +477,87 @@ describe('Visual rendering sanity', () => {
     rotatePiece(piece, 1);
     const render = renderPiece(piece);
     assert(render === 'C A\nD B', `Expected 'C A\\nD B', got:\n${render}`);
+  });
+});
+
+// --- SRS spawn orientation tests ---
+describe('SRS-correct spawn orientations', () => {
+  it('T piece spawns with nub on top: .X. / XXX', () => {
+    initBoard();
+    const piece = makePiece('T', ['A', 'B', 'C', 'D']);
+    // State 0: [1,0],[0,1],[1,1],[2,1]
+    const render = renderPiece(piece);
+    assert(render === '. A .\nB C D', `T spawn should be .X./XXX, got:\n${render}`);
+  });
+
+  it('T piece CW rotation: nub points right', () => {
+    initBoard();
+    const piece = makePiece('T', ['A', 'B', 'C', 'D']);
+    rotatePiece(piece, 1);
+    // State 1: [0,0],[0,1],[0,2],[1,1] → X./XX/X.
+    const render = renderPiece(piece);
+    assert(render === 'A .\nB D\nC .', `T CW should be X./XX/X., got:\n${render}`);
+  });
+
+  it('T piece 180 rotation: nub on bottom: XXX / .X.', () => {
+    initBoard();
+    const piece = makePiece('T', ['A', 'B', 'C', 'D']);
+    rotatePiece(piece, 1);
+    rotatePiece(piece, 1);
+    const render = renderPiece(piece);
+    assert(render === 'A B C\n. D .', `T 180 should be XXX/.X., got:\n${render}`);
+  });
+
+  it('T piece CCW rotation: nub points left', () => {
+    initBoard();
+    const piece = makePiece('T', ['A', 'B', 'C', 'D']);
+    rotatePiece(piece, -1);
+    // State 3: [1,0],[1,1],[1,2],[0,1] → .X/XX/.X
+    const render = renderPiece(piece);
+    assert(render === '. A\nD B\n. C', `T CCW should be .X/XX/.X, got:\n${render}`);
+  });
+
+  it('L piece spawns with corner top-right: ..X / XXX', () => {
+    initBoard();
+    const piece = makePiece('L', ['A', 'B', 'C', 'D']);
+    // State 0: [2,0],[0,1],[1,1],[2,1]
+    const render = renderPiece(piece);
+    assert(render === '. . A\nB C D', `L spawn should be ..X/XXX, got:\n${render}`);
+  });
+
+  it('L piece CW rotation: X. / X. / XX', () => {
+    initBoard();
+    const piece = makePiece('L', ['A', 'B', 'C', 'D']);
+    rotatePiece(piece, 1);
+    // State 1: [0,0],[0,1],[0,2],[1,2]
+    const render = renderPiece(piece);
+    assert(render === 'A .\nB .\nC D', `L CW should be X./X./XX, got:\n${render}`);
+  });
+
+  it('L piece 180: XXX / X..', () => {
+    initBoard();
+    const piece = makePiece('L', ['A', 'B', 'C', 'D']);
+    rotatePiece(piece, 1);
+    rotatePiece(piece, 1);
+    const render = renderPiece(piece);
+    assert(render === 'A B C\nD . .', `L 180 should be XXX/X.., got:\n${render}`);
+  });
+
+  it('L piece CCW: XX / .X / .X', () => {
+    initBoard();
+    const piece = makePiece('L', ['A', 'B', 'C', 'D']);
+    rotatePiece(piece, -1);
+    // State 3: [0,0],[1,0],[1,1],[1,2]
+    const render = renderPiece(piece);
+    assert(render === 'A B\n. C\n. D', `L CCW should be XX/.X/.X, got:\n${render}`);
+  });
+
+  it('J piece spawns with corner top-left: X.. / XXX', () => {
+    initBoard();
+    const piece = makePiece('J', ['A', 'B', 'C', 'D']);
+    // State 0: [0,0],[1,0],[2,0],[2,1]
+    const render = renderPiece(piece);
+    assert(render === 'A B C\n. . D', `J spawn should be XXX/..X, got:\n${render}`);
   });
 });
 
