@@ -399,26 +399,13 @@ function rotatePiece(piece, direction) {
 
   const testPiece = { ...piece, rotation: newRot, cells: newCells };
 
-  // Build map of absolute position -> letter before rotation
-  const posToLetter = {};
-  for (let i = 0; i < piece.cells.length; i++) {
-    const ax = piece.x + piece.cells[i][0];
-    const ay = piece.y + piece.cells[i][1];
-    posToLetter[`${ax},${ay}`] = piece.letters[i];
-  }
-
   // Wall kick: try offsets 0, -1, +1, -2, +2
   for (const dx of [0, -1, 1, -2, 2]) {
     testPiece.x = piece.x + dx;
     if (isValidPosition(testPiece)) {
-      // Reassign letters: keep letters at same absolute positions
-      const newLetters = newCells.map(([cx, cy]) => {
-        const key = `${testPiece.x + cx},${piece.y + cy}`;
-        return posToLetter[key] || randomLetter();
-      });
       piece.rotation = newRot;
       piece.cells = newCells;
-      piece.letters = newLetters;
+      // Letters stay the same - each cell index keeps its letter
       piece.x = testPiece.x;
       return true;
     }
