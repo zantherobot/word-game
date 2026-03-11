@@ -10,8 +10,8 @@ const WORDS_PER_LEVEL = 5;
 
 // Tetromino shapes (each rotation state)
 const SHAPES = {
-  I: [[[0,0],[1,0],[2,0],[3,0]], [[0,0],[0,1],[0,2],[0,3]]],
-  O: [[[0,0],[1,0],[0,1],[1,1]]],
+  I: [[[0,0],[1,0],[2,0],[3,0]], [[0,0],[0,1],[0,2],[0,3]], [[0,0],[1,0],[2,0],[3,0]], [[0,0],[0,1],[0,2],[0,3]]],
+  O: [[[0,0],[1,0],[0,1],[1,1]], [[0,0],[1,0],[0,1],[1,1]], [[0,0],[1,0],[0,1],[1,1]], [[0,0],[1,0],[0,1],[1,1]]],
   T: [[[0,0],[1,0],[2,0],[1,1]], [[0,0],[0,1],[0,2],[1,1]], [[1,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[1,2],[0,1]]],
   S: [[[1,0],[2,0],[0,1],[1,1]], [[0,0],[0,1],[1,1],[1,2]]],
   Z: [[[0,0],[1,0],[1,1],[2,1]], [[1,0],[1,1],[0,1],[0,2]]],
@@ -392,12 +392,29 @@ function isValidPosition(piece, offsetX = 0, offsetY = 0) {
   return true;
 }
 
+function rotateLetters(piece, direction) {
+  const L = piece.letters;
+  if (piece.shapeName === 'O') {
+    // Cycle letters CW around the square: TL→TR→BR→BL→TL
+    // Cell order: [0]=TL [1]=TR [2]=BL [3]=BR
+    if (direction === 1) return [L[2], L[0], L[3], L[1]];
+    else return [L[1], L[3], L[0], L[2]];
+  }
+  if (piece.shapeName === 'I') {
+    // Circular shift gives 4 distinct letter arrangements
+    if (direction === 1) return [L[3], L[0], L[1], L[2]];
+    else return [L[1], L[2], L[3], L[0]];
+  }
+  return L;
+}
+
 function rotatePiece(piece, direction) {
   const rotations = SHAPES[piece.shapeName];
   const newRot = (piece.rotation + direction + rotations.length) % rotations.length;
   const newCells = rotations[newRot];
+  const newLetters = rotateLetters(piece, direction);
 
-  const testPiece = { ...piece, rotation: newRot, cells: newCells };
+  const testPiece = { ...piece, rotation: newRot, cells: newCells, letters: newLetters };
 
   // Wall kick: try offsets 0, -1, +1, -2, +2
   for (const dx of [0, -1, 1, -2, 2]) {
@@ -405,7 +422,7 @@ function rotatePiece(piece, direction) {
     if (isValidPosition(testPiece)) {
       piece.rotation = newRot;
       piece.cells = newCells;
-      // Letters stay the same - each cell index keeps its letter
+      piece.letters = newLetters;
       piece.x = testPiece.x;
       return true;
     }
