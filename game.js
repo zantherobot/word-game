@@ -837,7 +837,74 @@ function spawnPiece() {
   // Check if spawn position is blocked
   if (!isValidPosition(currentPiece)) {
     gameOver = true;
-    showOverlay('Game Over', `Final Score: ${score.toLocaleString()}<br>Words: ${wordsCleared}<br>Level: ${level}`, 'Play Again');
+    showGameOver();
+  }
+}
+
+function getShareText() {
+  const bestWord = recentWords.length > 0
+    ? recentWords.reduce((best, w) => w.pts > best.pts ? w : best, recentWords[0])
+    : null;
+  let text = `Alphabricks - Score: ${score.toLocaleString()} | Level ${level} | ${wordsCleared} words`;
+  if (bestWord) text += ` | Best: ${bestWord.word} (+${bestWord.pts})`;
+  return text;
+}
+
+function getShareURL() {
+  const base = window.location.origin + window.location.pathname;
+  const params = new URLSearchParams({ s: score, l: level, w: wordsCleared });
+  return `${base}?${params}`;
+}
+
+async function shareScore() {
+  const text = getShareText();
+  const url = getShareURL();
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Alphabricks', text, url });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+
+  // Fallback: copy to clipboard
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    const btn = document.getElementById('share-btn');
+    if (btn) {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Share Score'; }, 1500);
+    }
+  } catch (e) {
+    // Last resort: prompt
+    prompt('Copy your score:', `${text}\n${url}`);
+  }
+}
+
+function showGameOver() {
+  overlayContent.innerHTML = `
+    <h1>Game Over</h1>
+    <p>Final Score: ${score.toLocaleString()}<br>Words: ${wordsCleared}<br>Level: ${level}</p>
+    <button id="share-btn">Share Score</button>
+    <button id="overlay-btn">Play Again</button>`;
+  overlay.classList.remove('hidden');
+  document.getElementById('overlay-btn').addEventListener('click', () => startGame());
+  document.getElementById('share-btn').addEventListener('click', () => shareScore());
+}
+
+function checkShareChallenge() {
+  const params = new URLSearchParams(window.location.search);
+  const challengeScore = parseInt(params.get('s'));
+  if (challengeScore > 0) {
+    const lvl = params.get('l') || '?';
+    const words = params.get('w') || '?';
+    const startScreen = document.getElementById('overlay-content');
+    const challengeHTML = `<p style="color:#e2b714;font-size:13px;margin-top:8px;">Challenge: Beat ${challengeScore.toLocaleString()} pts (Lv ${lvl}, ${words} words)</p>`;
+    startScreen.querySelector('button').insertAdjacentHTML('beforebegin', challengeHTML);
+    // Clean URL without reloading
+    window.history.replaceState({}, '', window.location.pathname);
   }
 }
 
@@ -1032,6 +1099,7 @@ function setupTouchControls() {
 
 // --- Init ---
 setupTouchControls();
+checkShareChallenge();
 
 startBtn.addEventListener('click', async () => {
   startBtn.textContent = 'Loading...';
