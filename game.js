@@ -319,6 +319,9 @@ let dropTimer = 0;
 let lastTime = 0;
 let animating = false;
 let recentWords = [];
+let highlightedCells = []; // [{x, y, word, pts, startTime}]
+let highlightStartTime = 0;
+const HIGHLIGHT_DURATION = 500; // ms
 
 // Canvas
 const canvas = document.getElementById('board');
@@ -396,12 +399,26 @@ function rotatePiece(piece, direction) {
 
   const testPiece = { ...piece, rotation: newRot, cells: newCells };
 
+  // Build map of absolute position -> letter before rotation
+  const posToLetter = {};
+  for (let i = 0; i < piece.cells.length; i++) {
+    const ax = piece.x + piece.cells[i][0];
+    const ay = piece.y + piece.cells[i][1];
+    posToLetter[`${ax},${ay}`] = piece.letters[i];
+  }
+
   // Wall kick: try offsets 0, -1, +1, -2, +2
   for (const dx of [0, -1, 1, -2, 2]) {
     testPiece.x = piece.x + dx;
     if (isValidPosition(testPiece)) {
+      // Reassign letters: keep letters at same absolute positions
+      const newLetters = newCells.map(([cx, cy]) => {
+        const key = `${testPiece.x + cx},${piece.y + cy}`;
+        return posToLetter[key] || randomLetter();
+      });
       piece.rotation = newRot;
       piece.cells = newCells;
+      piece.letters = newLetters;
       piece.x = testPiece.x;
       return true;
     }
@@ -495,33 +512,42 @@ function applyGravity() {
   }
 }
 
-// Process words: clear, gravity, rescan (no chain bonus)
+// Process words: find, highlight, then clear after animation
 function processBoard() {
-  let totalWordsThisLock = 0;
-  let totalScore = 0;
+  const words = findWords();
+  if (words.length === 0) return;
 
-  while (true) {
-    const words = findWords();
-    if (words.length === 0) break;
+  // Set up highlight animation
+  animating = true;
+  highlightStartTime = performance.now();
+  highlightedCells = [];
 
-    for (const w of words) {
-      const pts = wordScore(w.word.length);
-      totalScore += pts;
-      totalWordsThisLock++;
-      recentWords.unshift({ word: w.word, pts });
-      if (recentWords.length > 20) recentWords.pop();
+  for (const w of words) {
+    const pts = wordScore(w.word.length);
+    for (const [x, y] of w.cells) {
+      highlightedCells.push({ x, y, word: w.word, pts });
     }
-
-    clearWords(words);
-    applyGravity();
+    recentWords.unshift({ word: w.word, pts });
+    if (recentWords.length > 20) recentWords.pop();
+    score += pts;
+    wordsCleared++;
   }
+  level = Math.floor(wordsCleared / WORDS_PER_LEVEL) + 1;
+  updateUI();
 
-  if (totalWordsThisLock > 0) {
-    score += totalScore;
-    wordsCleared += totalWordsThisLock;
-    level = Math.floor(wordsCleared / WORDS_PER_LEVEL) + 1;
-    updateUI();
-  }
+  // Store the words to clear after animation
+  highlightedCells._wordsToProcess = words;
+}
+
+function finishWordAnimation() {
+  const words = highlightedCells._wordsToProcess;
+  clearWords(words);
+  applyGravity();
+  highlightedCells = [];
+  animating = false;
+
+  // Check for cascading words
+  processBoard();
 }
 
 // --- Rendering ---
@@ -553,6 +579,49 @@ function drawBoard() {
     }
   }
 
+  // Draw word highlight animation
+  if (highlightedCells.length > 0) {
+    const elapsed = performance.now() - highlightStartTime;
+    const pulse = 0.5 + 0.5 * Math.sin(elapsed / 80); // fast pulse
+    const alpha = 0.4 + 0.4 * pulse;
+
+    // Draw glow on highlighted cells
+    for (const { x, y } of highlightedCells) {
+      const px = x * CELL;
+      const py = y * CELL;
+      ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+      ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+      ctx.strokeStyle = `rgba(255, 255, 0, ${alpha + 0.2})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px, py, CELL, CELL);
+    }
+
+    // Draw score popups per word (centered on word cells)
+    const wordsDrawn = new Set();
+    for (const { x, y, word, pts } of highlightedCells) {
+      if (wordsDrawn.has(word + pts)) continue;
+      wordsDrawn.add(word + pts);
+
+      // Find center of this word's cells
+      const wordCells = highlightedCells.filter(c => c.word === word && c.pts === pts);
+      const cx = wordCells.reduce((s, c) => s + c.x, 0) / wordCells.length;
+      const cy = wordCells.reduce((s, c) => s + c.y, 0) / wordCells.length;
+
+      // Float upward over time
+      const floatY = -20 * (elapsed / HIGHLIGHT_DURATION);
+      const fadeOut = Math.max(0, 1 - elapsed / HIGHLIGHT_DURATION * 0.3);
+
+      ctx.save();
+      ctx.globalAlpha = fadeOut;
+      ctx.fillStyle = '#e2b714';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`+${pts}`, (cx + 0.5) * CELL, (cy + 0.5) * CELL + floatY);
+      ctx.restore();
+    }
+  }
+
   // Draw ghost piece
   if (currentPiece && !paused) {
     let ghostY = 0;
@@ -574,6 +643,21 @@ function drawBoard() {
       drawCell(ctx, currentPiece.x + cx, currentPiece.y + cy, currentPiece.letters[i], currentPiece.color);
     }
   }
+
+  // Draw score overlay on board
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(0, 0, BOARD_W, 22);
+  ctx.fillStyle = '#e2b714';
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(`Score: ${score.toLocaleString()}`, 4, 4);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#aaa';
+  ctx.font = '12px monospace';
+  ctx.fillText(`Lv ${level}`, BOARD_W - 4, 5);
+  ctx.restore();
 }
 
 function drawCell(context, col, row, letter, color) {
@@ -653,7 +737,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (paused || !currentPiece) return;
+  if (paused || animating || !currentPiece) return;
 
   switch (e.key) {
     case 'ArrowLeft':
@@ -739,7 +823,10 @@ function hardDrop() {
   lockPiece(currentPiece);
   if (!gameOver) {
     processBoard();
-    spawnPiece();
+    if (!animating) {
+      spawnPiece();
+    }
+    // If animating, game loop will handle spawning after animation
   }
   dropTimer = 0;
 }
@@ -791,6 +878,8 @@ function startGame() {
   gameOver = false;
   paused = false;
   recentWords = [];
+  highlightedCells = [];
+  animating = false;
   dropTimer = 0;
   currentPiece = null;
   nextPiece = null;
@@ -810,6 +899,27 @@ function gameLoop(timestamp) {
 
   const dt = timestamp - lastTime;
   lastTime = timestamp;
+
+  // Handle highlight animation
+  if (animating) {
+    if (timestamp - highlightStartTime >= HIGHLIGHT_DURATION) {
+      finishWordAnimation();
+      if (animating) {
+        // New cascade animation started
+        drawBoard();
+        requestAnimationFrame(gameLoop);
+        return;
+      }
+      // Animation done, spawn next piece
+      spawnPiece();
+      if (gameOver) return;
+      dropTimer = 0;
+    }
+    drawBoard();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
   dropTimer += dt;
 
   if (dropTimer >= getDropInterval()) {
@@ -820,6 +930,12 @@ function gameLoop(timestamp) {
       lockPiece(currentPiece);
       if (!gameOver) {
         processBoard();
+        if (animating) {
+          // Word found, wait for animation
+          drawBoard();
+          requestAnimationFrame(gameLoop);
+          return;
+        }
         spawnPiece();
       }
       if (gameOver) return;
