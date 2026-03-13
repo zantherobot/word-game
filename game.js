@@ -22,8 +22,8 @@ const SHAPES = {
 const SHAPE_NAMES = Object.keys(SHAPES);
 
 const COLORS = {
-  I: '#00f0f0', O: '#f0f000', T: '#a000f0',
-  S: '#00f000', Z: '#f00000', L: '#f0a000', J: '#0000f0'
+  I: '#06b6d4', O: '#eab308', T: '#a855f7',
+  S: '#22c55e', Z: '#ef4444', L: '#f97316', J: '#3b82f6'
 };
 
 // Letter frequencies (roughly matching English)
@@ -321,7 +321,7 @@ let animating = false;
 let recentWords = [];
 let highlightedCells = []; // [{x, y, word, pts, startTime}]
 let highlightStartTime = 0;
-const HIGHLIGHT_DURATION = 500; // ms
+const HIGHLIGHT_DURATION = 1000; // ms
 
 // Canvas
 const canvas = document.getElementById('board');
@@ -597,9 +597,9 @@ function drawBoard() {
     for (const { x, y } of highlightedCells) {
       const px = x * CELL;
       const py = y * CELL;
-      ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
       ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
-      ctx.strokeStyle = `rgba(255, 255, 0, ${alpha + 0.2})`;
+      ctx.strokeStyle = `rgba(56, 189, 248, ${alpha + 0.2})`;
       ctx.lineWidth = 2;
       ctx.strokeRect(px, py, CELL, CELL);
     }
@@ -621,7 +621,7 @@ function drawBoard() {
 
       ctx.save();
       ctx.globalAlpha = fadeOut;
-      ctx.fillStyle = '#e2b714';
+      ctx.fillStyle = '#38bdf8';
       ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -656,7 +656,7 @@ function drawBoard() {
   ctx.save();
   ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
   ctx.fillRect(0, 0, BOARD_W, 22);
-  ctx.fillStyle = '#e2b714';
+  ctx.fillStyle = '#38bdf8';
   ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
@@ -922,7 +922,7 @@ function checkShareChallenge() {
     const lvl = params.get('l') || '?';
     const words = params.get('w') || '?';
     const startScreen = document.getElementById('overlay-content');
-    const challengeHTML = `<p style="color:#e2b714;font-size:13px;margin-top:8px;">Challenge: Beat ${challengeScore.toLocaleString()} pts (Lv ${lvl}, ${words} words)</p>`;
+    const challengeHTML = `<p style="color:#38bdf8;font-size:13px;margin-top:8px;">Challenge: Beat ${challengeScore.toLocaleString()} pts (Lv ${lvl}, ${words} words)</p>`;
     startScreen.querySelector('button').insertAdjacentHTML('beforebegin', challengeHTML);
     // Clean URL without reloading
     window.history.replaceState({}, '', window.location.pathname);
