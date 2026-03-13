@@ -16,7 +16,7 @@ const SHAPES = {
   S: [[[1,0],[2,0],[0,1],[1,1]], [[0,0],[0,1],[1,1],[1,2]]],
   Z: [[[0,0],[1,0],[1,1],[2,1]], [[1,0],[1,1],[0,1],[0,2]]],
   L: [[[2,0],[0,1],[1,1],[2,1]], [[0,0],[0,1],[0,2],[1,2]], [[0,0],[1,0],[2,0],[0,1]], [[0,0],[1,0],[1,1],[1,2]]],
-  J: [[[0,0],[1,0],[2,0],[2,1]], [[0,0],[1,0],[0,1],[0,2]], [[0,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[1,2],[0,2]]]
+  J: [[[0,0],[0,1],[1,1],[2,1]], [[0,0],[1,0],[0,1],[0,2]], [[0,0],[1,0],[2,0],[2,1]], [[1,0],[1,1],[1,2],[0,2]]]
 };
 
 const SHAPE_NAMES = Object.keys(SHAPES);
@@ -392,27 +392,31 @@ function isValidPosition(piece, offsetX = 0, offsetY = 0) {
   return true;
 }
 
-function rotateLetters(piece, direction) {
-  const L = piece.letters;
-  if (piece.shapeName === 'O') {
-    // Cycle letters CW around the square: TL→TR→BR→BL→TL
-    // Cell order: [0]=TL [1]=TR [2]=BL [3]=BR
-    if (direction === 1) return [L[2], L[0], L[3], L[1]];
-    else return [L[1], L[3], L[0], L[2]];
+function rotateLetters(piece, newCells, direction) {
+  const oldCells = piece.cells;
+  const maxY = Math.max(...oldCells.map(c => c[1]));
+  const maxX = Math.max(...oldCells.map(c => c[0]));
+
+  // Apply 90° rotation to old cell positions
+  const rotated = (direction === 1)
+    ? oldCells.map(([x, y]) => [maxY - y, x])   // CW
+    : oldCells.map(([x, y]) => [y, maxX - x]);   // CCW
+
+  // Match rotated positions to new cell positions to find permutation
+  const newLetters = new Array(4);
+  for (let i = 0; i < 4; i++) {
+    const [rx, ry] = rotated[i];
+    const j = newCells.findIndex(([nx, ny]) => nx === rx && ny === ry);
+    newLetters[j] = piece.letters[i];
   }
-  if (piece.shapeName === 'I') {
-    // Circular shift gives 4 distinct letter arrangements
-    if (direction === 1) return [L[3], L[0], L[1], L[2]];
-    else return [L[1], L[2], L[3], L[0]];
-  }
-  return L;
+  return newLetters;
 }
 
 function rotatePiece(piece, direction) {
   const rotations = SHAPES[piece.shapeName];
   const newRot = (piece.rotation + direction + rotations.length) % rotations.length;
   const newCells = rotations[newRot];
-  const newLetters = rotateLetters(piece, direction);
+  const newLetters = rotateLetters(piece, newCells, direction);
 
   const testPiece = { ...piece, rotation: newRot, cells: newCells, letters: newLetters };
 

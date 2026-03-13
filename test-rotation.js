@@ -12,7 +12,7 @@ const SHAPES = {
   S: [[[1,0],[2,0],[0,1],[1,1]], [[0,0],[0,1],[1,1],[1,2]]],
   Z: [[[0,0],[1,0],[1,1],[2,1]], [[1,0],[1,1],[0,1],[0,2]]],
   L: [[[2,0],[0,1],[1,1],[2,1]], [[0,0],[0,1],[0,2],[1,2]], [[0,0],[1,0],[2,0],[0,1]], [[0,0],[1,0],[1,1],[1,2]]],
-  J: [[[0,0],[1,0],[2,0],[2,1]], [[0,0],[1,0],[0,1],[0,2]], [[0,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[1,2],[0,2]]]
+  J: [[[0,0],[0,1],[1,1],[2,1]], [[0,0],[1,0],[0,1],[0,2]], [[0,0],[1,0],[2,0],[2,1]], [[1,0],[1,1],[1,2],[0,2]]]
 };
 
 const SHAPE_NAMES = Object.keys(SHAPES);
@@ -33,24 +33,29 @@ function isValidPosition(piece, offsetX = 0, offsetY = 0) {
   return true;
 }
 
-function rotateLetters(piece, direction) {
-  const L = piece.letters;
-  if (piece.shapeName === 'O') {
-    if (direction === 1) return [L[2], L[0], L[3], L[1]];
-    else return [L[1], L[3], L[0], L[2]];
+function rotateLetters(piece, newCells, direction) {
+  const oldCells = piece.cells;
+  const maxY = Math.max(...oldCells.map(c => c[1]));
+  const maxX = Math.max(...oldCells.map(c => c[0]));
+
+  const rotated = (direction === 1)
+    ? oldCells.map(([x, y]) => [maxY - y, x])
+    : oldCells.map(([x, y]) => [y, maxX - x]);
+
+  const newLetters = new Array(4);
+  for (let i = 0; i < 4; i++) {
+    const [rx, ry] = rotated[i];
+    const j = newCells.findIndex(([nx, ny]) => nx === rx && ny === ry);
+    newLetters[j] = piece.letters[i];
   }
-  if (piece.shapeName === 'I') {
-    if (direction === 1) return [L[3], L[0], L[1], L[2]];
-    else return [L[1], L[2], L[3], L[0]];
-  }
-  return L;
+  return newLetters;
 }
 
 function rotatePiece(piece, direction) {
   const rotations = SHAPES[piece.shapeName];
   const newRot = (piece.rotation + direction + rotations.length) % rotations.length;
   const newCells = rotations[newRot];
-  const newLetters = rotateLetters(piece, direction);
+  const newLetters = rotateLetters(piece, newCells, direction);
 
   const testPiece = { ...piece, rotation: newRot, cells: newCells, letters: newLetters };
 
@@ -196,14 +201,13 @@ describe('Full CW rotation cycle returns to original state', () => {
         `Cells after ${numRots}x CW: expected ${JSON.stringify(origCells)}, got ${JSON.stringify(piece.cells)}`);
     });
 
-    it(`${name} piece: letters return to original after ${SHAPES[name].length} CW rotations`, () => {
+    it(`${name} piece: letters return to original after 4 CW rotations`, () => {
       initBoard();
       const piece = makePiece(name, ['A', 'B', 'C', 'D']);
       const origLetters = [...piece.letters];
-      const numRots = SHAPES[name].length;
-      for (let i = 0; i < numRots; i++) rotatePiece(piece, 1);
+      for (let i = 0; i < 4; i++) rotatePiece(piece, 1);
       assert(arrEq(piece.letters, origLetters),
-        `Letters after ${numRots}x CW: expected [${origLetters}], got [${piece.letters}]`);
+        `Letters after 4x CW: expected [${origLetters}], got [${piece.letters}]`);
     });
   }
 });
@@ -221,14 +225,13 @@ describe('Full CCW rotation cycle returns to original state', () => {
         `Cells after ${numRots}x CCW: expected ${JSON.stringify(origCells)}, got ${JSON.stringify(piece.cells)}`);
     });
 
-    it(`${name} piece: letters return to original after ${SHAPES[name].length} CCW rotations`, () => {
+    it(`${name} piece: letters return to original after 4 CCW rotations`, () => {
       initBoard();
       const piece = makePiece(name, ['A', 'B', 'C', 'D']);
       const origLetters = [...piece.letters];
-      const numRots = SHAPES[name].length;
-      for (let i = 0; i < numRots; i++) rotatePiece(piece, -1);
+      for (let i = 0; i < 4; i++) rotatePiece(piece, -1);
       assert(arrEq(piece.letters, origLetters),
-        `Letters after ${numRots}x CCW: expected [${origLetters}], got [${piece.letters}]`);
+        `Letters after 4x CCW: expected [${origLetters}], got [${piece.letters}]`);
     });
   }
 });
@@ -251,58 +254,42 @@ describe('CW followed by CCW returns to original', () => {
   }
 });
 
-// --- I piece: 4 distinct letter arrangements ---
+// --- I piece letter rotation ---
 describe('I piece letter rotation', () => {
-  it('I piece has 4 distinct letter arrangements across CW rotations', () => {
+  it('I piece CW: horizontal→vertical preserves reading order', () => {
     initBoard();
     const piece = makePiece('I', ['A', 'B', 'C', 'D']);
-    const arrangements = [piece.letters.join('')];
-    for (let i = 0; i < 3; i++) {
-      rotatePiece(piece, 1);
-      arrangements.push(piece.letters.join(''));
-    }
-    const unique = new Set(arrangements);
-    assert(unique.size === 4,
-      `Expected 4 distinct arrangements, got ${unique.size}: [${arrangements.join(', ')}]`);
+    rotatePiece(piece, 1);
+    // Left-to-right becomes top-to-bottom in same order
+    assert(piece.letters.join('') === 'ABCD',
+      `Expected ABCD, got ${piece.letters.join('')}`);
   });
 
-  it('I piece CW letter sequence is correct: ABCD → DABC → CDAB → BCDA', () => {
+  it('I piece CW: vertical→horizontal reverses order', () => {
     initBoard();
     const piece = makePiece('I', ['A', 'B', 'C', 'D']);
-    const expected = ['ABCD', 'DABC', 'CDAB', 'BCDA'];
-    for (let i = 0; i < 4; i++) {
-      assert(piece.letters.join('') === expected[i],
-        `State ${i}: expected ${expected[i]}, got ${piece.letters.join('')}`);
-      rotatePiece(piece, 1);
-    }
-    assert(piece.letters.join('') === 'ABCD', `Did not return to original after 4 CW`);
+    rotatePiece(piece, 1);
+    rotatePiece(piece, 1);
+    assert(piece.letters.join('') === 'DCBA',
+      `Expected DCBA, got ${piece.letters.join('')}`);
   });
 
-  it('I piece CCW letter sequence is correct: ABCD → BCDA → CDAB → DABC', () => {
+  it('I piece returns to original after 4 CW rotations', () => {
     initBoard();
     const piece = makePiece('I', ['A', 'B', 'C', 'D']);
-    const expected = ['ABCD', 'BCDA', 'CDAB', 'DABC'];
-    for (let i = 0; i < 4; i++) {
-      assert(piece.letters.join('') === expected[i],
-        `State ${i}: expected ${expected[i]}, got ${piece.letters.join('')}`);
-      rotatePiece(piece, -1);
-    }
-    assert(piece.letters.join('') === 'ABCD', `Did not return to original after 4 CCW`);
+    for (let i = 0; i < 4; i++) rotatePiece(piece, 1);
+    assert(piece.letters.join('') === 'ABCD', 'Should return after 4 CW');
   });
 
   it('I piece alternates between horizontal and vertical shapes', () => {
     initBoard();
     const piece = makePiece('I', ['A', 'B', 'C', 'D']);
-    // State 0: horizontal (all y=0)
     assert(piece.cells.every(c => c[1] === 0), 'State 0 should be horizontal');
     rotatePiece(piece, 1);
-    // State 1: vertical (all x equal)
     assert(piece.cells.every(c => c[0] === piece.cells[0][0]), 'State 1 should be vertical');
     rotatePiece(piece, 1);
-    // State 2: horizontal
     assert(piece.cells.every(c => c[1] === 0), 'State 2 should be horizontal');
     rotatePiece(piece, 1);
-    // State 3: vertical
     assert(piece.cells.every(c => c[0] === piece.cells[0][0]), 'State 3 should be vertical');
   });
 });
@@ -353,31 +340,25 @@ describe('O piece letter rotation', () => {
   });
 });
 
-// --- T, S, Z, L, J: letters unchanged on rotation (current behavior) ---
-describe('T, S, Z, L, J pieces: letters unchanged on rotation', () => {
-  for (const name of ['T', 'S', 'Z', 'L', 'J']) {
-    it(`${name} piece: letters stay fixed through all CW rotations`, () => {
+// --- All pieces: letters change on rotation (rotate with the piece) ---
+describe('Letters rotate with piece (not fixed to indices)', () => {
+  for (const name of SHAPE_NAMES) {
+    it(`${name} piece: letters return to original after 4 CW rotations`, () => {
       initBoard();
       const piece = makePiece(name, ['A', 'B', 'C', 'D']);
-      const origLetters = [...piece.letters];
-      const numRots = SHAPES[name].length;
-      for (let i = 0; i < numRots; i++) {
-        rotatePiece(piece, 1);
-        assert(arrEq(piece.letters, origLetters),
-          `${name} letters changed at rotation ${i + 1}: expected [${origLetters}], got [${piece.letters}]`);
-      }
+      for (let i = 0; i < 4; i++) rotatePiece(piece, 1);
+      assert(arrEq(piece.letters, ['A', 'B', 'C', 'D']),
+        `Expected [A,B,C,D] after 4 CW, got [${piece.letters}]`);
     });
 
-    it(`${name} piece: letters stay fixed through all CCW rotations`, () => {
+    it(`${name} piece: CW then CCW restores letters`, () => {
       initBoard();
       const piece = makePiece(name, ['A', 'B', 'C', 'D']);
       const origLetters = [...piece.letters];
-      const numRots = SHAPES[name].length;
-      for (let i = 0; i < numRots; i++) {
-        rotatePiece(piece, -1);
-        assert(arrEq(piece.letters, origLetters),
-          `${name} letters changed at rotation ${i + 1}: expected [${origLetters}], got [${piece.letters}]`);
-      }
+      rotatePiece(piece, 1);
+      rotatePiece(piece, -1);
+      assert(arrEq(piece.letters, origLetters),
+        `Expected [${origLetters}] after CW+CCW, got [${piece.letters}]`);
     });
   }
 });
@@ -459,8 +440,8 @@ describe('Visual rendering sanity', () => {
     const piece = makePiece('I', ['A', 'B', 'C', 'D']);
     rotatePiece(piece, 1);
     const render = renderPiece(piece);
-    // After CW, letters shift: DABC, vertical
-    assert(render === 'D\nA\nB\nC', `Expected column D/A/B/C, got:\n${render}`);
+    // CW rotation preserves reading order: left→right becomes top→bottom
+    assert(render === 'A\nB\nC\nD', `Expected column A/B/C/D, got:\n${render}`);
   });
 
   it('O piece renders as 2x2 square', () => {
@@ -494,9 +475,8 @@ describe('SRS-correct spawn orientations', () => {
     initBoard();
     const piece = makePiece('T', ['A', 'B', 'C', 'D']);
     rotatePiece(piece, 1);
-    // State 1: [0,0],[0,1],[0,2],[1,1] → X./XX/X.
     const render = renderPiece(piece);
-    assert(render === 'A .\nB D\nC .', `T CW should be X./XX/X., got:\n${render}`);
+    assert(render === 'B .\nC A\nD .', `T CW should be X./XX/X., got:\n${render}`);
   });
 
   it('T piece 180 rotation: nub on bottom: XXX / .X.', () => {
@@ -505,16 +485,15 @@ describe('SRS-correct spawn orientations', () => {
     rotatePiece(piece, 1);
     rotatePiece(piece, 1);
     const render = renderPiece(piece);
-    assert(render === 'A B C\n. D .', `T 180 should be XXX/.X., got:\n${render}`);
+    assert(render === 'D C B\n. A .', `T 180 should be XXX/.X., got:\n${render}`);
   });
 
   it('T piece CCW rotation: nub points left', () => {
     initBoard();
     const piece = makePiece('T', ['A', 'B', 'C', 'D']);
     rotatePiece(piece, -1);
-    // State 3: [1,0],[1,1],[1,2],[0,1] → .X/XX/.X
     const render = renderPiece(piece);
-    assert(render === '. A\nD B\n. C', `T CCW should be .X/XX/.X, got:\n${render}`);
+    assert(render === '. D\nA C\n. B', `T CCW should be .X/XX/.X, got:\n${render}`);
   });
 
   it('L piece spawns with corner top-right: ..X / XXX', () => {
@@ -529,9 +508,8 @@ describe('SRS-correct spawn orientations', () => {
     initBoard();
     const piece = makePiece('L', ['A', 'B', 'C', 'D']);
     rotatePiece(piece, 1);
-    // State 1: [0,0],[0,1],[0,2],[1,2]
     const render = renderPiece(piece);
-    assert(render === 'A .\nB .\nC D', `L CW should be X./X./XX, got:\n${render}`);
+    assert(render === 'B .\nC .\nD A', `L CW should be X./X./XX, got:\n${render}`);
   });
 
   it('L piece 180: XXX / X..', () => {
@@ -540,24 +518,23 @@ describe('SRS-correct spawn orientations', () => {
     rotatePiece(piece, 1);
     rotatePiece(piece, 1);
     const render = renderPiece(piece);
-    assert(render === 'A B C\nD . .', `L 180 should be XXX/X.., got:\n${render}`);
+    assert(render === 'D C B\nA . .', `L 180 should be XXX/X.., got:\n${render}`);
   });
 
   it('L piece CCW: XX / .X / .X', () => {
     initBoard();
     const piece = makePiece('L', ['A', 'B', 'C', 'D']);
     rotatePiece(piece, -1);
-    // State 3: [0,0],[1,0],[1,1],[1,2]
     const render = renderPiece(piece);
-    assert(render === 'A B\n. C\n. D', `L CCW should be XX/.X/.X, got:\n${render}`);
+    assert(render === 'A D\n. C\n. B', `L CCW should be XX/.X/.X, got:\n${render}`);
   });
 
   it('J piece spawns with corner top-left: X.. / XXX', () => {
     initBoard();
     const piece = makePiece('J', ['A', 'B', 'C', 'D']);
-    // State 0: [0,0],[1,0],[2,0],[2,1]
+    // State 0: [0,0],[0,1],[1,1],[2,1] → X../XXX
     const render = renderPiece(piece);
-    assert(render === 'A B C\n. . D', `J spawn should be XXX/..X, got:\n${render}`);
+    assert(render === 'A . .\nB C D', `J spawn should be X../XXX, got:\n${render}`);
   });
 });
 
