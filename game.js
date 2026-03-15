@@ -189,7 +189,7 @@ function getBuiltInWords() {
     "teeth","thank","theme","there","thick","thing","think","third","those","three","threw",
     "throw","tight","tired","title","today","token","total","touch","tough","tower","toxic",
     "trace","track","trade","trail","train","trait","trash","treat","trend","trial","tribe",
-    "trick","tried","troop","truck","truly","trump","trunk","trust","truth","tumor","twice",
+    "trick","tried","trite","troop","truck","truly","trump","trunk","trust","truth","tumor","twice",
     "twist","ultra","uncle","under","union","unity","until","upper","upset","urban","usual",
     "valid","value","video","vigor","virus","visit","vital","vivid","vocal","voice","voter",
     "waste","watch","water","weave","weigh","weird","whale","wheat","wheel","where","which",
