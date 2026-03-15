@@ -91,7 +91,7 @@ function getBuiltInWords() {
     "kit","lab","lap","law","lay","led","leg","let","lie","lip","log","lot","low","map","mat",
     "mix","mom","mud","net","nor","nut","odd","pan","pay","pen","per","pet","pie","pin","pit",
     "pop","pot","put","ran","raw","rid","rod","row","sad","sat","saw","sea","sir","six","ski",
-    "sky","son","spy","sum","tab","tan","tap","tax","tea","ten","the","tie","tin","tip","toe",
+    "sky","sob","son","sow","spy","sub","sum","tab","tan","tap","tax","tea","ten","the","tie","tin","tip","toe",
     "ton","too","try","van","via","vet","wet","win","wit","won","yes","yet","zoo",
     // 4-letter
     "able","also","area","army","away","back","ball","band","bank","base","bath","bear","beat",
