@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Tap</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0f0f1a;
+  color: #eee;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  max-width: 500px;
+  width: 100%;
+}
+
+h1 {
+  font-size: 2rem;
+  letter-spacing: 4px;
+  color: #7c5cbf;
+  text-transform: uppercase;
+}
+
+/* Header bar: score + timer */
+.header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 340px;
+}
+
+.header .stat {
+  text-align: center;
+}
+
+.header .stat .label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #888;
+}
+
+.header .stat .value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+#timer.urgent {
+  color: #e74c3c;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
+}
+
+/* Current word display */
+.word-display {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: bold;
+  letter-spacing: 6px;
+  color: #c9a0ff;
+  width: 100%;
+}
+
+/* 4x4 Grid */
+#grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.game-area.active #grid {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tile {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: bold;
+  background: #1e1e36;
+  border: 2px solid #2a2a4a;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+}
+
+.tile:hover {
+  background: #2a2a50;
+  border-color: #4a4a7a;
+}
+
+.tile.selected {
+  background: #3d2a6e;
+  border-color: #7c5cbf;
+  color: #e0c8ff;
+  transform: scale(0.93);
+  box-shadow: 0 0 16px rgba(124, 92, 191, 0.4);
+}
+
+.tile.selected::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: #7c5cbf;
+  border-radius: 50%;
+}
+
+/* Buttons */
+.buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.buttons button {
+  flex: 1;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: all 0.15s;
+}
+
+#submit-btn {
+  background: #7c5cbf;
+  color: #fff;
+}
+#submit-btn:hover { background: #9370db; }
+
+#clear-btn {
+  background: #2a2a4a;
+  color: #aaa;
+}
+#clear-btn:hover { background: #3a3a5a; color: #ddd; }
+
+/* Start button */
+#start-btn {
+  padding: 16px 48px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  background: #7c5cbf;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  transition: all 0.15s;
+}
+#start-btn:hover { background: #9370db; transform: scale(1.05); }
+#start-btn:disabled { background: #444; cursor: default; transform: none; }
+
+/* Message toast */
+.message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1rem;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.message.error { background: #e74c3c; color: #fff; }
+.message.success { background: #27ae60; color: #fff; }
+
+.message.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Words found list */
+.words-section {
+  width: 100%;
+  max-width: 340px;
+}
+
+.words-section h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+#words-list {
+  list-style: none;
+  max-height: 140px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#words-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #1a1a30;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.found-word { color: #c9a0ff; letter-spacing: 2px; }
+.found-pts { color: #27ae60; }
+
+/* Final screen overlay */
+#final-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 26, 0.95);
+  z-index: 50;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+#final-screen.show {
+  display: flex;
+}
+
+#final-screen h2 {
+  font-size: 2rem;
+  color: #7c5cbf;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+}
+
+#final-screen .big-score {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #c9a0ff;
+}
+
+#final-screen .sub {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+#play-again {
+  margin-top: 16px;
+  padding: 14px 40px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background: #7c5cbf;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+#play-again:hover { background: #9370db; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+/* Hint text */
+.hint {
+  color: #555;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+
+<div id="message" class="message"></div>
+
+<div class="container">
+  <h1>Word Tap</h1>
+
+  <div class="header">
+    <div class="stat">
+      <div class="label">Score</div>
+      <div class="value" id="score">0</div>
+    </div>
+    <div class="stat">
+      <div class="label">Time</div>
+      <div class="value" id="timer">2:00</div>
+    </div>
+  </div>
+
+  <div class="word-display" id="current-word">&nbsp;</div>
+
+  <div class="game-area">
+    <div id="grid"></div>
+  </div>
+
+  <button id="start-btn">START</button>
+
+  <div class="buttons">
+    <button id="clear-btn">Clear</button>
+    <button id="submit-btn">Submit</button>
+  </div>
+
+  <p class="hint">Tap letters to build words. Enter to submit, Backspace to undo.</p>
+
+  <div class="words-section">
+    <h3>Words Found</h3>
+    <ul id="words-list"></ul>
+  </div>
+</div>
+
+<div id="final-screen">
+  <h2>Time's Up!</h2>
+  <div class="big-score" id="final-score">0</div>
+  <div class="sub">points</div>
+  <div class="sub"><span id="final-words">0</span> words found</div>
+  <button id="play-again">Play Again</button>
+</div>
+
+<script src="word-tap.js"></script>
+</body>
+</html>
