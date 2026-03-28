@@ -13,7 +13,6 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   justify-content: center;
-  align-items: center;
   min-height: 100vh;
   user-select: none;
   -webkit-user-select: none;
@@ -23,25 +22,22 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
-  max-width: 500px;
+  gap: 12px;
+  padding: 12px;
   width: 100%;
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: 1.8rem;
   letter-spacing: 4px;
   color: #7c5cbf;
   text-transform: uppercase;
 }
 
-/* Header bar: score + timer */
 .header {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  max-width: 380px;
 }
 
 .header .stat {
@@ -71,9 +67,8 @@ h1 {
   to { opacity: 0.5; }
 }
 
-/* Current word display */
 .word-display {
-  min-height: 48px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,16 +79,18 @@ h1 {
   width: 100%;
 }
 
-/* 4x4 Grid */
 #grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  max-width: 380px;
   opacity: 0.3;
   pointer-events: none;
   transition: opacity 0.3s;
+}
+
+.game-area {
+  width: 100%;
 }
 
 .game-area.active #grid {
@@ -106,26 +103,25 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
   font-weight: bold;
   background: #1e1e36;
   border: 2px solid #2a2a4a;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.12s ease;
   position: relative;
 }
 
 .tile-letter {
-  font-size: 2.2rem;
+  font-size: clamp(1.8rem, 6vw, 3rem);
   font-weight: bold;
 }
 
 .tile-pts {
   position: absolute;
-  bottom: 3px;
+  bottom: 4px;
   right: 6px;
-  font-size: 0.65rem;
+  font-size: clamp(0.55rem, 1.5vw, 0.75rem);
   color: #666;
   font-weight: normal;
 }
@@ -158,12 +154,10 @@ h1 {
   border-radius: 50%;
 }
 
-/* Buttons */
 .buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  max-width: 380px;
 }
 
 .buttons button {
@@ -193,7 +187,6 @@ h1 {
 #clear-btn:hover { background: #3a3a5a; color: #ddd; }
 #clear-btn:active { transform: scale(0.97); }
 
-/* Start button */
 #start-btn {
   padding: 20px 56px;
   font-size: 1.5rem;
@@ -210,7 +203,6 @@ h1 {
 #start-btn:hover { background: #9370db; transform: scale(1.05); }
 #start-btn:disabled { background: #444; cursor: default; transform: none; }
 
-/* Message toast */
 .message {
   position: fixed;
   top: 20px;
@@ -234,10 +226,8 @@ h1 {
   transform: translateX(-50%) translateY(0);
 }
 
-/* Words found list */
 .words-section {
   width: 100%;
-  max-width: 380px;
 }
 
 .words-section h3 {
@@ -275,7 +265,6 @@ h1 {
 .found-word { color: #c9a0ff; letter-spacing: 2px; }
 .found-pts { color: #27ae60; }
 
-/* Final screen overlay */
 #final-screen {
   display: none;
   position: fixed;
@@ -326,12 +315,10 @@ h1 {
 #play-again:hover { background: #9370db; }
 #play-again:active { transform: scale(0.97); }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
-/* Hint text */
 .hint {
   color: #555;
   font-size: 0.7rem;

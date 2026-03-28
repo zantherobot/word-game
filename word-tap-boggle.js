@@ -30,7 +30,14 @@ function scoreWord(letters, timeRemaining) {
   return letterSum * lengthMult + timeBonus;
 }
 
-// Adjacency: check if two grid indices are neighbors (including diagonal)
+// Score a word without time bonus (for max score calculation)
+function scoreWordBase(letters) {
+  const letterSum = letters.reduce((sum, l) => sum + (LETTER_POINTS[l] || 1), 0);
+  const lengthMult = LENGTH_MULTIPLIER[Math.min(letters.length, LENGTH_MULTIPLIER.length - 1)]
+    || (letters.length * 15);
+  return letterSum * lengthMult;
+}
+
 function areAdjacent(a, b) {
   const rowA = Math.floor(a / GRID_COLS), colA = a % GRID_COLS;
   const rowB = Math.floor(b / GRID_COLS), colB = b % GRID_COLS;
@@ -53,16 +60,10 @@ function getAdjacentIndices(index) {
   return neighbors;
 }
 
-const weightedLetters = [];
-for (const [letter, weight] of Object.entries(LETTER_WEIGHTS)) {
-  const count = Math.round(weight * 10);
-  for (let i = 0; i < count; i++) {
-    weightedLetters.push(letter);
-  }
-}
-
-function randomLetter() {
-  return weightedLetters[Math.floor(Math.random() * weightedLetters.length)];
+// Precompute adjacency list
+const adjacency = [];
+for (let i = 0; i < GRID_SIZE; i++) {
+  adjacency.push(getAdjacentIndices(i));
 }
 
 // Standard Boggle dice (classic 4x4)
@@ -75,7 +76,6 @@ const BOGGLE_DICE = [
 
 function rollBoggleDice() {
   const dice = [...BOGGLE_DICE];
-  // Shuffle dice positions
   for (let i = dice.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [dice[i], dice[j]] = [dice[j], dice[i]];
@@ -86,17 +86,90 @@ function rollBoggleDice() {
   });
 }
 
+// Find all valid words on the board using DFS
+function findAllWords(boardGrid) {
+  const found = new Map(); // word -> letter array for scoring
+
+  function dfs(index, path, wordSoFar, visited) {
+    const word = wordSoFar + boardGrid[index];
+    visited[index] = true;
+    path.push(index);
+
+    if (word.length >= MIN_WORD_LENGTH && dictionary.has(word) && !found.has(word)) {
+      found.set(word, path.map(i => boardGrid[i]));
+    }
+
+    // Prune: check if any word in dictionary starts with this prefix
+    if (word.length < 16 && hasPrefixInDict(word)) {
+      for (const neighbor of adjacency[index]) {
+        if (!visited[neighbor]) {
+          dfs(neighbor, path, word, visited);
+        }
+      }
+    }
+
+    path.pop();
+    visited[index] = false;
+  }
+
+  const visited = new Array(GRID_SIZE).fill(false);
+  for (let i = 0; i < GRID_SIZE; i++) {
+    dfs(i, [], '', visited);
+  }
+
+  return found;
+}
+
+// Build a trie for prefix lookups
+let trieRoot = null;
+
+function buildTrie() {
+  trieRoot = {};
+  for (const word of dictionary) {
+    let node = trieRoot;
+    for (const ch of word) {
+      if (!node[ch]) node[ch] = {};
+      node = node[ch];
+    }
+    node['$'] = true;
+  }
+}
+
+function hasPrefixInDict(prefix) {
+  if (!trieRoot) return true;
+  let node = trieRoot;
+  for (const ch of prefix) {
+    if (!node[ch]) return false;
+    node = node[ch];
+  }
+  return true;
+}
+
+function calculateMaxScore(boardGrid) {
+  const allWords = findAllWords(boardGrid);
+  let totalScore = 0;
+  let wordCount = 0;
+  for (const [word, letters] of allWords) {
+    totalScore += scoreWordBase(letters);
+    wordCount++;
+  }
+  return { totalScore, wordCount };
+}
+
 let dictionary = new Set();
 let grid = [];
+let lastGrid = null; // store for replay
 let selected = [];
 let score = 0;
 let wordsFound = [];
 let timeRemaining = GAME_DURATION;
 let timerInterval = null;
 let gameActive = false;
+let maxScoreInfo = null;
 
 let gridEl, wordEl, scoreEl, timerEl, submitBtn, clearBtn, startBtn,
-    wordsListEl, messageEl, finalEl, finalScoreEl, finalWordsEl, playAgainBtn;
+    wordsListEl, messageEl, finalEl, finalScoreEl, finalWordsEl,
+    playAgainBtn, playSameBtn, maxScoreEl, finalMaxEl, finalMaxWordsEl;
 
 async function loadDictionary() {
   const resp = await fetch('word-tap-dict.txt');
@@ -105,37 +178,23 @@ async function loadDictionary() {
     const trimmed = w.trim();
     if (trimmed) dictionary.add(trimmed);
   });
+  buildTrie();
 }
 
 function initGrid() {
   grid = rollBoggleDice();
+  lastGrid = [...grid];
 }
 
 function renderGrid() {
   gridEl.innerHTML = '';
-  // Compute which tiles are valid next picks
-  const validNext = new Set();
-  if (selected.length === 0) {
-    for (let i = 0; i < GRID_SIZE; i++) validNext.add(i);
-  } else {
-    const last = selected[selected.length - 1];
-    for (const n of getAdjacentIndices(last)) {
-      if (!selected.includes(n)) validNext.add(n);
-    }
-  }
 
   grid.forEach((letter, i) => {
     const tile = document.createElement('div');
     tile.className = 'tile';
     tile.dataset.index = i;
 
-    const isSelected = selected.includes(i);
-    if (isSelected) tile.classList.add('selected');
-
-    // Show adjacency hints: dim non-adjacent tiles when building a word
-    if (gameActive && selected.length > 0 && !isSelected && !validNext.has(i)) {
-      tile.classList.add('unavailable');
-    }
+    if (selected.includes(i)) tile.classList.add('selected');
 
     const letterSpan = document.createElement('span');
     letterSpan.className = 'tile-letter';
@@ -151,7 +210,6 @@ function renderGrid() {
     gridEl.appendChild(tile);
   });
 
-  // Draw path lines
   renderPath();
 }
 
@@ -189,7 +247,7 @@ function renderPath() {
     line.setAttribute('y1', y1);
     line.setAttribute('x2', x2);
     line.setAttribute('y2', y2);
-    line.setAttribute('stroke', 'rgba(124, 92, 191, 0.5)');
+    line.setAttribute('stroke', 'rgba(191, 124, 92, 0.5)');
     line.setAttribute('stroke-width', '3');
     line.setAttribute('stroke-linecap', 'round');
     svg.appendChild(line);
@@ -201,10 +259,8 @@ function onTileClick(index) {
 
   const pos = selected.indexOf(index);
   if (pos !== -1) {
-    // Deselect: remove from this point onward
     selected.splice(pos);
   } else {
-    // Must be adjacent to last selected (or first pick)
     if (selected.length > 0) {
       const last = selected[selected.length - 1];
       if (!areAdjacent(last, index)) {
@@ -262,7 +318,6 @@ function submitWord() {
 
   showMessage(`+${points} pts!`, 'success');
 
-  // In Boggle mode, letters stay — no replacement
   selected = [];
   renderGrid();
   updateCurrentWord();
@@ -302,24 +357,39 @@ function addWordToList(word, points) {
   wordsListEl.prepend(li);
 }
 
-function startGame() {
+function startGame(useSameGrid) {
   score = 0;
   wordsFound = [];
   selected = [];
   timeRemaining = GAME_DURATION;
   gameActive = true;
+  maxScoreInfo = null;
 
-  initGrid();
+  if (useSameGrid && lastGrid) {
+    grid = [...lastGrid];
+  } else {
+    initGrid();
+  }
+
   renderGrid();
   updateCurrentWord();
   updateScore();
   updateTimer();
+  maxScoreEl.textContent = '--';
 
   timerEl.classList.remove('urgent');
   wordsListEl.innerHTML = '';
   finalEl.classList.remove('show');
   startBtn.style.display = 'none';
   document.querySelector('.game-area').classList.add('active');
+
+  // Calculate max score in background
+  setTimeout(() => {
+    maxScoreInfo = calculateMaxScore(grid);
+    if (gameActive) {
+      maxScoreEl.textContent = maxScoreInfo.totalScore.toLocaleString();
+    }
+  }, 0);
 
   timerInterval = setInterval(() => {
     timeRemaining--;
@@ -336,6 +406,15 @@ function endGame() {
 
   finalScoreEl.textContent = score;
   finalWordsEl.textContent = wordsFound.length;
+
+  if (maxScoreInfo) {
+    finalMaxEl.textContent = maxScoreInfo.totalScore.toLocaleString();
+    finalMaxWordsEl.textContent = maxScoreInfo.wordCount;
+  } else {
+    finalMaxEl.textContent = '...';
+    finalMaxWordsEl.textContent = '...';
+  }
+
   finalEl.classList.add('show');
   document.querySelector('.game-area').classList.remove('active');
 }
@@ -354,11 +433,16 @@ async function init() {
   finalScoreEl = document.getElementById('final-score');
   finalWordsEl = document.getElementById('final-words');
   playAgainBtn = document.getElementById('play-again');
+  playSameBtn = document.getElementById('play-same');
+  maxScoreEl = document.getElementById('max-score');
+  finalMaxEl = document.getElementById('final-max');
+  finalMaxWordsEl = document.getElementById('final-max-words');
 
   submitBtn.addEventListener('click', submitWord);
   clearBtn.addEventListener('click', clearSelection);
-  startBtn.addEventListener('click', startGame);
-  playAgainBtn.addEventListener('click', startGame);
+  startBtn.addEventListener('click', () => startGame(false));
+  playAgainBtn.addEventListener('click', () => startGame(false));
+  playSameBtn.addEventListener('click', () => startGame(true));
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') submitWord();

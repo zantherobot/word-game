@@ -13,7 +13,6 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   justify-content: center;
-  align-items: center;
   min-height: 100vh;
   user-select: none;
   -webkit-user-select: none;
@@ -23,14 +22,13 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
-  max-width: 500px;
+  gap: 12px;
+  padding: 12px;
   width: 100%;
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: 1.8rem;
   letter-spacing: 4px;
   color: #bf7c5c;
   text-transform: uppercase;
@@ -44,12 +42,11 @@ h1 .sub-title {
   margin-top: 2px;
 }
 
-/* Header bar: score + timer */
 .header {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  max-width: 380px;
+  align-items: flex-end;
 }
 
 .header .stat {
@@ -69,6 +66,11 @@ h1 .sub-title {
   font-variant-numeric: tabular-nums;
 }
 
+.header .stat .value.small {
+  font-size: 1rem;
+  color: #666;
+}
+
 #timer.urgent {
   color: #e74c3c;
   animation: pulse 0.5s ease-in-out infinite alternate;
@@ -79,9 +81,8 @@ h1 .sub-title {
   to { opacity: 0.5; }
 }
 
-/* Current word display */
 .word-display {
-  min-height: 48px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,17 +93,19 @@ h1 .sub-title {
   width: 100%;
 }
 
-/* 4x4 Grid */
 #grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  max-width: 380px;
   opacity: 0.3;
   pointer-events: none;
   transition: opacity 0.3s;
   position: relative;
+}
+
+.game-area {
+  width: 100%;
 }
 
 .game-area.active #grid {
@@ -115,11 +118,10 @@ h1 .sub-title {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
   font-weight: bold;
   background: #1e1e36;
   border: 2px solid #2a2a4a;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.12s ease;
   position: relative;
@@ -127,15 +129,15 @@ h1 .sub-title {
 }
 
 .tile-letter {
-  font-size: 2.2rem;
+  font-size: clamp(1.8rem, 6vw, 3rem);
   font-weight: bold;
 }
 
 .tile-pts {
   position: absolute;
-  bottom: 3px;
+  bottom: 4px;
   right: 6px;
-  font-size: 0.65rem;
+  font-size: clamp(0.55rem, 1.5vw, 0.75rem);
   color: #666;
   font-weight: normal;
 }
@@ -168,17 +170,10 @@ h1 .sub-title {
   border-radius: 50%;
 }
 
-.tile.unavailable {
-  opacity: 0.3;
-  cursor: default;
-}
-
-/* Buttons */
 .buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  max-width: 380px;
 }
 
 .buttons button {
@@ -208,7 +203,6 @@ h1 .sub-title {
 #clear-btn:hover { background: #3a3a5a; color: #ddd; }
 #clear-btn:active { transform: scale(0.97); }
 
-/* Start button */
 #start-btn {
   padding: 20px 56px;
   font-size: 1.5rem;
@@ -225,7 +219,6 @@ h1 .sub-title {
 #start-btn:hover { background: #d49370; transform: scale(1.05); }
 #start-btn:disabled { background: #444; cursor: default; transform: none; }
 
-/* Message toast */
 .message {
   position: fixed;
   top: 20px;
@@ -249,10 +242,8 @@ h1 .sub-title {
   transform: translateX(-50%) translateY(0);
 }
 
-/* Words found list */
 .words-section {
   width: 100%;
-  max-width: 380px;
 }
 
 .words-section h3 {
@@ -290,7 +281,6 @@ h1 .sub-title {
 .found-word { color: #ffcc88; letter-spacing: 2px; }
 .found-pts { color: #27ae60; }
 
-/* Final screen overlay */
 #final-screen {
   display: none;
   position: fixed;
@@ -301,6 +291,7 @@ h1 .sub-title {
   align-items: center;
   justify-content: center;
   gap: 16px;
+  padding: 20px;
 }
 
 #final-screen.show {
@@ -325,28 +316,50 @@ h1 .sub-title {
   font-size: 0.9rem;
 }
 
-#play-again {
-  margin-top: 16px;
-  padding: 18px 48px;
-  font-size: 1.3rem;
+#final-screen .max-score {
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: -8px;
+}
+
+.end-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.end-buttons button {
+  padding: 16px 36px;
+  font-size: 1.1rem;
   font-weight: bold;
-  background: #bf7c5c;
-  color: #fff;
   border: none;
   border-radius: 14px;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
+  transition: all 0.15s;
+}
+
+#play-again {
+  background: #bf7c5c;
+  color: #fff;
 }
 #play-again:hover { background: #d49370; }
 #play-again:active { transform: scale(0.97); }
 
-/* Scrollbar */
+#play-same {
+  background: #2a2a4a;
+  color: #ccc;
+}
+#play-same:hover { background: #3a3a5a; }
+#play-same:active { transform: scale(0.97); }
+
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
-/* Hint text */
 .hint {
   color: #555;
   font-size: 0.7rem;
@@ -365,6 +378,10 @@ h1 .sub-title {
     <div class="stat">
       <div class="label">Score</div>
       <div class="value" id="score">0</div>
+    </div>
+    <div class="stat">
+      <div class="label">Max</div>
+      <div class="value small" id="max-score">--</div>
     </div>
     <div class="stat">
       <div class="label">Time</div>
@@ -398,7 +415,11 @@ h1 .sub-title {
   <div class="big-score" id="final-score">0</div>
   <div class="sub">points</div>
   <div class="sub"><span id="final-words">0</span> words found</div>
-  <button id="play-again">Play Again</button>
+  <div class="max-score">Max possible: <span id="final-max">0</span> pts (<span id="final-max-words">0</span> words)</div>
+  <div class="end-buttons">
+    <button id="play-same">Same Letters</button>
+    <button id="play-again">New Letters</button>
+  </div>
 </div>
 
 <script src="word-tap-boggle.js"></script>
