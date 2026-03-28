@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Word Tap</title>
+<title>Word Tap - Boggle</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -32,8 +32,16 @@ body {
 h1 {
   font-size: 2rem;
   letter-spacing: 4px;
-  color: #7c5cbf;
+  color: #bf7c5c;
   text-transform: uppercase;
+}
+
+h1 .sub-title {
+  font-size: 0.8rem;
+  color: #886644;
+  letter-spacing: 3px;
+  display: block;
+  margin-top: 2px;
 }
 
 /* Header bar: score + timer */
@@ -80,7 +88,7 @@ h1 {
   font-size: 1.8rem;
   font-weight: bold;
   letter-spacing: 6px;
-  color: #c9a0ff;
+  color: #ffcc88;
   width: 100%;
 }
 
@@ -94,6 +102,7 @@ h1 {
   opacity: 0.3;
   pointer-events: none;
   transition: opacity 0.3s;
+  position: relative;
 }
 
 .game-area.active #grid {
@@ -114,6 +123,7 @@ h1 {
   cursor: pointer;
   transition: all 0.12s ease;
   position: relative;
+  z-index: 3;
 }
 
 .tile-letter {
@@ -132,19 +142,19 @@ h1 {
 
 .tile:hover {
   background: #2a2a50;
-  border-color: #4a4a7a;
+  border-color: #6a5a3a;
 }
 
 .tile.selected {
-  background: #3d2a6e;
-  border-color: #7c5cbf;
-  color: #e0c8ff;
+  background: #4a3520;
+  border-color: #bf7c5c;
+  color: #ffe0c8;
   transform: scale(0.93);
-  box-shadow: 0 0 16px rgba(124, 92, 191, 0.4);
+  box-shadow: 0 0 16px rgba(191, 124, 92, 0.4);
 }
 
 .tile.selected .tile-pts {
-  color: #9a7ad4;
+  color: #d4a07a;
 }
 
 .tile.selected::after {
@@ -154,8 +164,13 @@ h1 {
   right: 6px;
   width: 8px;
   height: 8px;
-  background: #7c5cbf;
+  background: #bf7c5c;
   border-radius: 50%;
+}
+
+.tile.unavailable {
+  opacity: 0.3;
+  cursor: default;
 }
 
 /* Buttons */
@@ -180,10 +195,10 @@ h1 {
 }
 
 #submit-btn {
-  background: #7c5cbf;
+  background: #bf7c5c;
   color: #fff;
 }
-#submit-btn:hover { background: #9370db; }
+#submit-btn:hover { background: #d49370; }
 #submit-btn:active { transform: scale(0.97); }
 
 #clear-btn {
@@ -198,7 +213,7 @@ h1 {
   padding: 20px 56px;
   font-size: 1.5rem;
   font-weight: bold;
-  background: #7c5cbf;
+  background: #bf7c5c;
   color: #fff;
   border: none;
   border-radius: 14px;
@@ -207,7 +222,7 @@ h1 {
   letter-spacing: 4px;
   transition: all 0.15s;
 }
-#start-btn:hover { background: #9370db; transform: scale(1.05); }
+#start-btn:hover { background: #d49370; transform: scale(1.05); }
 #start-btn:disabled { background: #444; cursor: default; transform: none; }
 
 /* Message toast */
@@ -272,7 +287,7 @@ h1 {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.found-word { color: #c9a0ff; letter-spacing: 2px; }
+.found-word { color: #ffcc88; letter-spacing: 2px; }
 .found-pts { color: #27ae60; }
 
 /* Final screen overlay */
@@ -294,7 +309,7 @@ h1 {
 
 #final-screen h2 {
   font-size: 2rem;
-  color: #7c5cbf;
+  color: #bf7c5c;
   text-transform: uppercase;
   letter-spacing: 4px;
 }
@@ -302,7 +317,7 @@ h1 {
 #final-screen .big-score {
   font-size: 4rem;
   font-weight: bold;
-  color: #c9a0ff;
+  color: #ffcc88;
 }
 
 #final-screen .sub {
@@ -315,7 +330,7 @@ h1 {
   padding: 18px 48px;
   font-size: 1.3rem;
   font-weight: bold;
-  background: #7c5cbf;
+  background: #bf7c5c;
   color: #fff;
   border: none;
   border-radius: 14px;
@@ -323,7 +338,7 @@ h1 {
   text-transform: uppercase;
   letter-spacing: 3px;
 }
-#play-again:hover { background: #9370db; }
+#play-again:hover { background: #d49370; }
 #play-again:active { transform: scale(0.97); }
 
 /* Scrollbar */
@@ -344,7 +359,7 @@ h1 {
 <div id="message" class="message"></div>
 
 <div class="container">
-  <h1>Word Tap</h1>
+  <h1>Word Tap <span class="sub-title">Boggle Mode</span></h1>
 
   <div class="header">
     <div class="stat">
@@ -370,7 +385,7 @@ h1 {
     <button id="submit-btn">Submit</button>
   </div>
 
-  <p class="hint">Tap letters to build words. Enter to submit, Backspace to undo.</p>
+  <p class="hint">Tap adjacent letters to build words. Enter to submit, Backspace to undo.</p>
 
   <div class="words-section">
     <h3>Words Found</h3>
@@ -386,6 +401,6 @@ h1 {
   <button id="play-again">Play Again</button>
 </div>
 
-<script src="word-tap.js"></script>
+<script src="word-tap-boggle.js"></script>
 </body>
 </html>

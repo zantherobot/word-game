@@ -1,11 +1,11 @@
-// Word Tap - 16 letter grid word game
-// Tap letters to form words. Longer words + speed + rare letters = more points. 2 minutes.
+// Word Tap Boggle - 4x4 grid word game with adjacency rules
+// Letters must be adjacent (including diagonals) to the previous letter.
 
-const GAME_DURATION = 120; // seconds
+const GAME_DURATION = 120;
 const GRID_SIZE = 16;
+const GRID_COLS = 4;
 const MIN_WORD_LENGTH = 3;
 
-// English letter frequencies (approximate) - used for weighted random generation
 const LETTER_WEIGHTS = {
   a: 8.2, b: 1.5, c: 2.8, d: 4.3, e: 12.7, f: 2.2, g: 2.0, h: 6.1,
   i: 7.0, j: 0.15, k: 0.77, l: 4.0, m: 2.4, n: 6.7, o: 7.5, p: 1.9,
@@ -13,7 +13,6 @@ const LETTER_WEIGHTS = {
   y: 2.0, z: 0.074
 };
 
-// Scrabble-style letter point values (rare letters worth more)
 const LETTER_POINTS = {
   a: 1, b: 3, c: 3, d: 2, e: 1, f: 4, g: 2, h: 4,
   i: 1, j: 8, k: 5, l: 1, m: 3, n: 1, o: 1, p: 3,
@@ -21,21 +20,39 @@ const LETTER_POINTS = {
   y: 4, z: 10
 };
 
-// Length multiplier: heavily reward longer words
 const LENGTH_MULTIPLIER = [0, 0, 0, 1, 2, 4, 8, 15, 25, 40, 60, 80, 100, 130, 160, 200, 250];
 
 function scoreWord(letters, timeRemaining) {
-  // Sum letter points
   const letterSum = letters.reduce((sum, l) => sum + (LETTER_POINTS[l] || 1), 0);
-  // Length multiplier
   const lengthMult = LENGTH_MULTIPLIER[Math.min(letters.length, LENGTH_MULTIPLIER.length - 1)]
     || (letters.length * 15);
-  // Time bonus: 1-6 based on remaining time
   const timeBonus = Math.ceil(timeRemaining / 20);
   return letterSum * lengthMult + timeBonus;
 }
 
-// Build weighted random letter picker
+// Adjacency: check if two grid indices are neighbors (including diagonal)
+function areAdjacent(a, b) {
+  const rowA = Math.floor(a / GRID_COLS), colA = a % GRID_COLS;
+  const rowB = Math.floor(b / GRID_COLS), colB = b % GRID_COLS;
+  return Math.abs(rowA - rowB) <= 1 && Math.abs(colA - colB) <= 1 && a !== b;
+}
+
+function getAdjacentIndices(index) {
+  const row = Math.floor(index / GRID_COLS);
+  const col = index % GRID_COLS;
+  const neighbors = [];
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const r = row + dr, c = col + dc;
+      if (r >= 0 && r < GRID_COLS && c >= 0 && c < GRID_COLS) {
+        neighbors.push(r * GRID_COLS + c);
+      }
+    }
+  }
+  return neighbors;
+}
+
 const weightedLetters = [];
 for (const [letter, weight] of Object.entries(LETTER_WEIGHTS)) {
   const count = Math.round(weight * 10);
@@ -48,17 +65,36 @@ function randomLetter() {
   return weightedLetters[Math.floor(Math.random() * weightedLetters.length)];
 }
 
-// Game state
+// Standard Boggle dice (classic 4x4)
+const BOGGLE_DICE = [
+  'AAEEGN', 'ABBJOO', 'ACHOPS', 'AFFKPS',
+  'AOOTTW', 'CIMOTU', 'DEILRX', 'DELRVY',
+  'DISTTY', 'EEGHNW', 'EEINSU', 'EHRTVW',
+  'EIOSST', 'ELRTTY', 'HIMNQU', 'HLNNRZ'
+];
+
+function rollBoggleDice() {
+  const dice = [...BOGGLE_DICE];
+  // Shuffle dice positions
+  for (let i = dice.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [dice[i], dice[j]] = [dice[j], dice[i]];
+  }
+  return dice.map(die => {
+    const face = die[Math.floor(Math.random() * 6)];
+    return face.toLowerCase();
+  });
+}
+
 let dictionary = new Set();
-let grid = [];          // 16 letters
-let selected = [];      // indices of selected tiles
+let grid = [];
+let selected = [];
 let score = 0;
 let wordsFound = [];
 let timeRemaining = GAME_DURATION;
 let timerInterval = null;
 let gameActive = false;
 
-// DOM refs (set in init)
 let gridEl, wordEl, scoreEl, timerEl, submitBtn, clearBtn, startBtn,
     wordsListEl, messageEl, finalEl, finalScoreEl, finalWordsEl, playAgainBtn;
 
@@ -72,21 +108,35 @@ async function loadDictionary() {
 }
 
 function initGrid() {
-  grid = [];
-  for (let i = 0; i < GRID_SIZE; i++) {
-    grid.push(randomLetter());
-  }
+  grid = rollBoggleDice();
 }
 
 function renderGrid() {
   gridEl.innerHTML = '';
+  // Compute which tiles are valid next picks
+  const validNext = new Set();
+  if (selected.length === 0) {
+    for (let i = 0; i < GRID_SIZE; i++) validNext.add(i);
+  } else {
+    const last = selected[selected.length - 1];
+    for (const n of getAdjacentIndices(last)) {
+      if (!selected.includes(n)) validNext.add(n);
+    }
+  }
+
   grid.forEach((letter, i) => {
     const tile = document.createElement('div');
     tile.className = 'tile';
     tile.dataset.index = i;
-    if (selected.includes(i)) {
-      tile.classList.add('selected');
+
+    const isSelected = selected.includes(i);
+    if (isSelected) tile.classList.add('selected');
+
+    // Show adjacency hints: dim non-adjacent tiles when building a word
+    if (gameActive && selected.length > 0 && !isSelected && !validNext.has(i)) {
+      tile.classList.add('unavailable');
     }
+
     const letterSpan = document.createElement('span');
     letterSpan.className = 'tile-letter';
     letterSpan.textContent = letter.toUpperCase();
@@ -100,6 +150,50 @@ function renderGrid() {
     tile.addEventListener('click', () => onTileClick(i));
     gridEl.appendChild(tile);
   });
+
+  // Draw path lines
+  renderPath();
+}
+
+function renderPath() {
+  let svg = document.getElementById('path-svg');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = 'path-svg';
+    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2;';
+    gridEl.style.position = 'relative';
+    gridEl.appendChild(svg);
+  }
+  svg.innerHTML = '';
+
+  if (selected.length < 2) return;
+
+  const tiles = gridEl.querySelectorAll('.tile');
+  const gridRect = gridEl.getBoundingClientRect();
+
+  for (let i = 0; i < selected.length - 1; i++) {
+    const tileA = tiles[selected[i]];
+    const tileB = tiles[selected[i + 1]];
+    if (!tileA || !tileB) continue;
+
+    const rectA = tileA.getBoundingClientRect();
+    const rectB = tileB.getBoundingClientRect();
+
+    const x1 = rectA.left + rectA.width / 2 - gridRect.left;
+    const y1 = rectA.top + rectA.height / 2 - gridRect.top;
+    const x2 = rectB.left + rectB.width / 2 - gridRect.left;
+    const y2 = rectB.top + rectB.height / 2 - gridRect.top;
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    line.setAttribute('stroke', 'rgba(124, 92, 191, 0.5)');
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(line);
+  }
 }
 
 function onTileClick(index) {
@@ -107,9 +201,17 @@ function onTileClick(index) {
 
   const pos = selected.indexOf(index);
   if (pos !== -1) {
-    // Deselect: remove this and all after it
+    // Deselect: remove from this point onward
     selected.splice(pos);
   } else {
+    // Must be adjacent to last selected (or first pick)
+    if (selected.length > 0) {
+      const last = selected[selected.length - 1];
+      if (!areAdjacent(last, index)) {
+        showMessage('Must be adjacent!');
+        return;
+      }
+    }
     selected.push(index);
   }
 
@@ -154,19 +256,13 @@ function submitWord() {
     return;
   }
 
-  // Valid word!
   const points = scoreWord(letters, timeRemaining);
   score += points;
   wordsFound.push(word);
 
   showMessage(`+${points} pts!`, 'success');
 
-  // Replace used tiles with new letters
-  const usedIndices = [...selected];
-  usedIndices.forEach(i => {
-    grid[i] = randomLetter();
-  });
-
+  // In Boggle mode, letters stay — no replacement
   selected = [];
   renderGrid();
   updateCurrentWord();
@@ -264,7 +360,6 @@ async function init() {
   startBtn.addEventListener('click', startGame);
   playAgainBtn.addEventListener('click', startGame);
 
-  // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') submitWord();
     if (e.key === 'Escape' || e.key === 'Backspace') {
